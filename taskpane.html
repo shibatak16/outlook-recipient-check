@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>宛先確認</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; padding: 16px; }
+    .external { color: red; }
+    .internal { color: green; }
+    .row { margin: 4px 0; }
+    button { margin-right: 8px; }
+  </style>
+</head>
+<body>
+  <h3>外部宛先を確認してください</h3>
+  <div id="list"></div>
+  <div style="margin-top:12px;">
+    <button id="send" disabled>送信する</button>
+    <button id="cancel">キャンセル</button>
+  </div>
+
+  <script>
+    Office.onReady(() => render());
+
+    function render() {
+      const internal = JSON.parse(localStorage.getItem("rc_internal") || "[]");
+      const external = JSON.parse(localStorage.getItem("rc_external") || "[]");
+
+      const list = document.getElementById("list");
+      list.innerHTML = "";
+
+      external.forEach(r => {
+        const div = document.createElement("div");
+        div.className = "row external";
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.className = "extcb";
+        cb.addEventListener("change", checkAll);
+        div.appendChild(cb);
+        div.appendChild(document.createTextNode(` ${r.displayName || ""} <${r.emailAddress}>`));
+        list.appendChild(div);
+      });
+
+      internal.forEach(r => {
+        const div = document.createElement("div");
+        div.className = "row internal";
+        div.textContent = ` ${r.displayName || ""} <${r.emailAddress}>`;
+        list.appendChild(div);
+      });
+
+      document.getElementById("send").onclick = onConfirmSend;
+      document.getElementById("cancel").onclick = () => window.close();
+      checkAll();
+    }
+
+    function checkAll() {
+      const allChecked = Array.from(document.querySelectorAll(".extcb")).every(cb => cb.checked);
+      document.getElementById("send").disabled = !allChecked;
+    }
+
+    async function onConfirmSend() {
+      // 送信を再実行（compose アイテムの send）
+      try {
+        await Office.context.mailbox.item.sendAsync();
+        window.close();
+      } catch (e) {
+        alert("送信に失敗しました。もう一度お試しください。");
+        console.error(e);
+      }
+    }
+  </script>
+</body>
+</html>
