@@ -1,92 +1,26 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <title>Functions (OnMessageSend)</title>
-  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
-  <script>
-    // ===== Utility =====
-    function getRecipientsAsync(field) {
-      return new Promise((resolve, reject) => {
-        if (!field) return resolve([]);
-        field.getAsync({}, (res) => {
-          if (res.status === Office.AsyncResultStatus.Succeeded) resolve(res.value || []);
-          else reject(res.error || new Error("getAsync failed"));
-        });
-      });
+<meta charset="utf-8"/>
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<script>
+  Office.onReady(() => {
+    Office.actions.associate("onMessageSend", onMessageSend);
+  });
+
+  async function onMessageSend(event) {
+    try {
+      // ここで必要なら宛先チェック等を実施（省略可）
+
+      // タスクペインを開いて「OK/キャンセル」確認へ
+      await Office.addin.showAsTaskpane();
+
+      // 送信は一旦止める（OKなら taskpane 側で sendAsync する）
+      event.completed({ allowEvent: false });
+    } catch (e) {
+      console.error(e);
+      event.completed({ allowEvent: false });
     }
-
-    function notify(msg) {
-      try {
-        Office.context.mailbox.item.notificationMessages.replaceAsync("rc-info", {
-          type: "informationalMessage",
-          message: msg,
-          icon: "icon16",
-          persistent: false
-        });
-      } catch (_) {}
-      console.log(msg);
-    }
-
-    // ===== Entry point =====
-    Office.onReady(() => {
-      // manifest.xml の FunctionName と一致させる（onMessageSend）
-      Office.actions.associate("onMessageSend", onMessageSend);
-      console.log("Office.onReady; Mailbox set >=1.12 ?",
-        Office.context.requirements.isSetSupported("Mailbox", "1.12"));
-    });
-
-    // ===== Main handler =====
-    async function onMessageSend(event) {
-      try {
-        const item = Office.context.mailbox.item;
-        const fromAddr = Office.context.mailbox.userProfile.emailAddress || "";
-        const userDomain = (fromAddr.split("@")[1] || "").toLowerCase();
-
-        // 宛先収集：To/Cc/Bcc
-        const [to, cc, bcc] = await Promise.all([
-          getRecipientsAsync(item.to),
-          getRecipientsAsync(item.cc),
-          getRecipientsAsync(item.bcc)
-        ]);
-        const all = [...to, ...cc, ...bcc];
-
-        // 分類：内部 / 外部
-        const internal = [];
-        const external = [];
-        all.forEach(r => {
-          const addr = (r.emailAddress || "").toLowerCase();
-          const domain = (addr.split("@")[1] || "");
-          if (domain && userDomain && domain !== userDomain) external.push(r);
-          else internal.push(r);
-        });
-
-        // 外部宛先が無ければ、そのまま送信継続
-        if (external.length === 0) {
-          event.completed({ allowEvent: true });
-          return;
-        }
-
-        // タスクペインへデータ受け渡し（簡便のため localStorage 経由）
-        localStorage.setItem("rc_internal", JSON.stringify(internal));
-        localStorage.setItem("rc_external", JSON.stringify(external));
-        localStorage.setItem("rc_eventToken", "PENDING_SEND"); // 任意フラグ
-
-        notify("外部宛先が含まれます。タスクペインで確認してください。");
-
-        // タスクペインを表示（manifest の residTaskPaneUrl が開く）
-        await Office.addin.showAsTaskpane();
-
-        // ここでは一旦送信を止める。送信は taskpane 側で item.sendAsync() を実行
-        event.completed({ allowEvent: false });
-
-      } catch (err) {
-        console.error(err);
-        notify("エラーが発生したため送信を中止しました。");
-        event.completed({ allowEvent: false });
-      }
-    }
-  </script>
-</head>
-<body></body>
-</html>
+  }
+</script>
+</head><body></body></html>
