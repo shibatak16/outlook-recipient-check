@@ -1,32 +1,17 @@
-<!DOCTYPE html>
-<html>
-<head>
+<!DOCTYPE html><html><head>
 <meta charset="utf-8">
-<title>Confirm Send</title>
 <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
-<style>
-  body { font-family: system-ui; padding: 16px; }
-  .row { margin-top: 12px; }
-</style>
-</head>
-<body>
-  <h3>送信してよろしいですか？</h3>
-  <div class="row">
-    <button id="ok">OK（送信）</button>
-    <button id="cancel">キャンセル</button>
-  </div>
+</head><body>
+<h3>送信してよろしいですか？</h3>
+<button id="ok">OK（送信）</button>
+<button id="cancel">キャンセル</button>
 <script>
   Office.onReady(() => {
-    document.getElementById("ok").onclick = async () => {
-      try {
-        await Office.context.mailbox.item.sendAsync();
-        window.close();
-      } catch (e) {
-        alert("送信に失敗しました");
-        console.error(e);
-      }
+    document.getElementById("ok").onclick = async ()=>{
+      try{ await Office.context.mailbox.item.sendAsync(); window.close(); }
+      catch(e){ alert("送信失敗"); console.error(e); }
     };
-    document.getElementById("cancel").onclick = () => window.close();
+    document.getElementById("cancel").onclick = ()=> window.close();
   });
-</script></body>
-</html>
+</script>
+</body></html>
